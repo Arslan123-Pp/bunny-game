@@ -68,12 +68,19 @@ def load_level(filename):
 
     max_width = max(map(len, level_map))
 
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+    return list(map(lambda x: x.ljust(max_width, '4'), level_map))
 
 
 tile_images = {
-    'wall': load_image('box.png'),
-    'empty': load_image('grass.png')
+    'block1': load_image('block1.png'),
+    'block2': load_image('block2.png'),
+    'block3': load_image('block3.png'),
+    'block4': load_image('block4.png'),
+    'block5': load_image('block5.png'),
+    'block6': load_image('block6.png'),
+    'block7': load_image('block7.png'),
+    'block8': load_image('block8.png'),
+    'block9': load_image('block9.png')
 }
 player_image = load_image('mar.png')
 
@@ -96,23 +103,67 @@ class Player(pygame.sprite.Sprite):
             tile_width * pos_x + 15, tile_height * pos_y + 10)
         self.x = tile_width * pos_x + 15
         self.y = tile_height * pos_y + 10
-        self.duration = True
+        self.duration = False
         self.speed = 4
+        self.jump = False
+        self.jumpCount = 0
+        self.jumpMx = 2
+        self.jumpN = None
 
-    def update(self):
+    def update(self, *args):
+        x = (self.x + 24) // tile_width
         if self.duration:
             self.x += self.speed
             self.rect = self.rect.move(self.speed, 0)
         else:
             self.x -= self.speed
             self.rect = self.rect.move(-self.speed, 0)
-        if level[(self.y + 40) // tile_height][(self.x) // tile_width] != '.':
-            self.rect = self.rect.move(0, 5)
-            self.y += 5
-        if (level[self.y // tile_height][(self.x + 20) // tile_width] == '.' or
-                level[self.y // tile_height][(self.x) // tile_width] == '.'):
-            self.duration = not self.duration
+        if args and args[0].type == pygame.KEYDOWN:
+            if ((not self.jump and level[(self.y + 40) // tile_height][(self.x) // tile_width] != ' ' and
+                 level[(self.y + 40) // tile_height][x] != ' ') or
+                    self.jumpCount < 2):
+                if args[0].key == pygame.K_SPACE:
+                    self.jump = True
+                    self.jumpN = self.y // tile_height
+                    self.jumpCount += 1
+                    if level[self.y // tile_height][x] != ' ':
+                        self.duration = False
+                        self.x -= 10
+                        self.rect = self.rect.move(-10, 0)
+                    if level[self.y // tile_height][self.x // tile_width] != ' ':
+                        self.duration = True
+                        self.x += self.speed
+                        self.rect = self.rect.move(self.speed, 0)
+        if not self.jump:
+            if level[(self.y + 40) // tile_height][self.x // tile_width] == ' ' \
+                    or level[(self.y + 40) // tile_height][x] == ' ':
+                self.rect = self.rect.move(0, 4)
+                self.y += 4
+            else:
+                self.jumpCount = 0
+        if self.jump:
+            if (level[self.y // tile_height][self.x // tile_width] == ' ' and
+                    abs(self.y // tile_height - self.jumpN) != self.jumpMx):
+                self.rect = self.rect.move(0, -4)
+                self.y -= 4
+            else:
+                self.jump = False
 
+        if level[self.y // tile_height][x] != ' ' or level[self.y // tile_height][self.x // tile_width] != ' ':
+            if (level[(self.y + 40) // tile_height][self.x // tile_width] == ' ' or
+                     level[(self.y + 40) // tile_height][x] == ' '):
+                self.jumpCount = 0
+                if self.duration:
+                    self.x -= self.speed
+                    self.rect = self.rect.move(-self.speed, 0)
+                else:
+                    self.x += self.speed
+                    self.rect = self.rect.move(self.speed, 0)
+            else:
+                if level[self.y // tile_height][x] != ' ' and self.duration is True:
+                    self.duration = False
+                if level[self.y // tile_height][self.x // tile_width] != ' ' and self.duration is False:
+                    self.duration = True
 
 class Camera:
     def __init__(self):
@@ -132,21 +183,20 @@ def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
-            if level[y][x] == '.':
-                Tile('empty', x, y)
-            elif level[y][x] == '#':
-                Tile('wall', x, y)
+            if level[y][x].isdigit():
+                Tile(f'block{level[y][x]}', x, y)
             elif level[y][x] == '@':
+                level[y] = level[y].replace('@', ' ')
                 new_player = Player(x, y)
     return new_player, x, y
 
 
 if __name__ == '__main__':
     pygame.init()
-    size = WIDTH, HEIGHT = width, height = 500, 500
+    size = WIDTH, HEIGHT = width, height = 700, 500
 
     screen = pygame.display.set_mode(size)
-    pygame.display.set_caption('Перемещение героя')
+    pygame.display.set_caption('Bunny game')
     level = load_level(name_file)
     player, level_x, level_y = generate_level(level)
     start_screen()
@@ -160,7 +210,10 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-        screen.fill(pygame.Color('black'))
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    player.update(event)
+        screen.fill(pygame.Color('lightblue'))
         all_sprites.draw(screen)
         all_sprites.update()
         pygame.display.flip()
