@@ -55,8 +55,9 @@ thorns_group = pygame.sprite.Group()
 decor_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 background_group = pygame.sprite.Group()
+enemy_group = pygame.sprite.Group()
 
-name_file = 'map.txt'
+name_file = 'free_map.txt'
 
 
 def load_level(filename):
@@ -223,6 +224,38 @@ class Player(pygame.sprite.Sprite):
                     if level[self.y // tile_height][self.x // tile_width] != ' ' and self.duration is False:
                         self.duration = True
 
+
+class Enemy(pygame.sprite.Sprite):
+    image = load_image("enemy.png", -1)
+
+    def __init__(self, pos_x, pos_y):
+        super().__init__(enemy_group, all_sprites)
+        self.image = Enemy.image
+        self.rect = self.image.get_rect().move(
+            tile_width * pos_x, tile_height * pos_y - 10)
+        self.x = tile_width * pos_x
+        self.y = tile_height * pos_y
+        self.nx = pos_x
+        self.ny = pos_y
+        self.duration = True
+        self.speed = 3
+
+    def update(self):
+        if self.duration:
+            self.x += self.speed
+            self.rect = self.rect.move(self.speed, 0)
+        else:
+            self.x -= self.speed
+            self.rect = self.rect.move(-self.speed, 0)
+        if level[(self.y + 40) // tile_height][(self.x) // tile_width] != '.':
+            self.rect = self.rect.move(0, 5)
+            self.y += 5
+        x = self.x // tile_width
+        if (level[self.y // tile_height][(self.x + 20) // tile_width] == '.' or
+            level[self.y // tile_height][(self.x) // tile_width] == '.') or \
+                abs(self.nx - x) == 2:
+            self.duration = not self.duration
+
 class Camera:
     def __init__(self):
         self.dx = 0
@@ -252,6 +285,8 @@ def generate_level(level):
             elif level[y][x] == '@':
                 level[y] = level[y].replace('@', ' ')
                 new_player = Player(x, y)
+            elif level[y][x] == '!':
+                new_enemy = Enemy(x, y)
     return new_player, x, y
 
 
