@@ -57,7 +57,7 @@ player_group = pygame.sprite.Group()
 background_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 
-name_file = 'free_map.txt'
+name_file = 'map.txt'
 
 
 def load_level(filename):
@@ -232,7 +232,7 @@ class Enemy(pygame.sprite.Sprite):
         super().__init__(enemy_group, all_sprites)
         self.image = Enemy.image
         self.rect = self.image.get_rect().move(
-            tile_width * pos_x, tile_height * pos_y - 10)
+            tile_width * pos_x, tile_height * pos_y)
         self.x = tile_width * pos_x
         self.y = tile_height * pos_y
         self.nx = pos_x
@@ -247,13 +247,8 @@ class Enemy(pygame.sprite.Sprite):
         else:
             self.x -= self.speed
             self.rect = self.rect.move(-self.speed, 0)
-        if level[(self.y + 40) // tile_height][(self.x) // tile_width] != '.':
-            self.rect = self.rect.move(0, 5)
-            self.y += 5
         x = self.x // tile_width
-        if (level[self.y // tile_height][(self.x + 20) // tile_width] == '.' or
-            level[self.y // tile_height][(self.x) // tile_width] == '.') or \
-                abs(self.nx - x) == 2:
+        if abs(self.nx - x) == 2:
             self.duration = not self.duration
 
 class Camera:
