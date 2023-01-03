@@ -24,6 +24,7 @@ thorns_group = pygame.sprite.Group()
 decor_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 background_group = pygame.sprite.Group()
+enemy_group = pygame.sprite.Group()
 
 name_file = 'map.txt'
 
@@ -65,10 +66,12 @@ thorn_images = {
 decor_images = {
     'decorq': load_image('zabor.png'),
     'decorw': load_image('grass1.png'),
-    'decore': load_image('bush1.png')
+    'decore': load_image('bush1.png'),
+    'decorr': load_image('carrot.png')
 }
 background = load_image('background.png')
 player_image = load_image('mar.png')
+enemy_image = load_image("enemy.png")
 
 tile_width = tile_height = 50
 thorn_width = thorn_height = 50
@@ -247,6 +250,32 @@ class Player(pygame.sprite.Sprite):
                         self.jumpN = self.y + self.mxsy
 
 
+
+class Enemy(pygame.sprite.Sprite):
+
+    def __init__(self, pos_x, pos_y):
+        super().__init__(enemy_group, all_sprites)
+        self.image = enemy_image
+        self.rect = self.image.get_rect().move(
+            tile_width * pos_x, tile_height * pos_y)
+        self.x = tile_width * pos_x
+        self.y = tile_height * pos_y
+        self.nx = pos_x
+        self.ny = pos_y
+        self.duration = True
+        self.speed = 3
+
+    def update(self):
+        if self.duration:
+            self.x += self.speed
+            self.rect = self.rect.move(self.speed, 0)
+        else:
+            self.x -= self.speed
+            self.rect = self.rect.move(-self.speed, 0)
+        x = self.x // tile_width
+        if abs(self.nx - x) == 2:
+            self.duration = not self.duration
+
 class Camera:
     def __init__(self):
         self.dx = 0
@@ -270,11 +299,14 @@ def generate_level(level):
                 Tile(f'block{level[y][x]}', x, y)
             elif level[y][x] in 'zxcv':
                 Thorn(f'thorn{level[y][x]}', x, y)
-            elif level[y][x] in 'qwe':
+            elif level[y][x] in 'qwer':
                 Decor(f'decor{level[y][x]}', x, y)
                 level[y] = level[y].replace(level[y][x], ' ', 1)
             elif level[y][x] == '@':
                 level[y] = level[y].replace('@', ' ')
+                new_player = Player(x, y)
+            elif level[y][x] == '!':
+                new_enemy = Enemy(x, y)
                 new_player = Player(bunny_animations['run'], 4, 1, x, y)
     return new_player, x, y
 

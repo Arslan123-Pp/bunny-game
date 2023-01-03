@@ -54,7 +54,7 @@ tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 
-name_file = 'map.txt'
+name_file = 'free_map.txt'
 
 
 def load_level(filename):
@@ -116,7 +116,7 @@ class Player(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    image = load_image("box.png", -1)
+    image = load_image("enemy.png", -1)
 
     def __init__(self, pos_x, pos_y):
         super().__init__(enemy_group, all_sprites)
