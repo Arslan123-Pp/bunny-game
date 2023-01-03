@@ -97,10 +97,12 @@ thorn_images = {
 decor_images = {
     'decorq': load_image('zabor.png'),
     'decorw': load_image('grass1.png'),
-    'decore': load_image('bush1.png')
+    'decore': load_image('bush1.png'),
+    'decorr': load_image('carrot.png')
 }
 background = load_image('background.png')
 player_image = load_image('mar.png')
+enemy_image = load_image("enemy.png")
 
 tile_width = tile_height = 50
 thorn_width = thorn_height = 50
@@ -226,11 +228,10 @@ class Player(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    image = load_image("enemy.png", -1)
 
     def __init__(self, pos_x, pos_y):
         super().__init__(enemy_group, all_sprites)
-        self.image = Enemy.image
+        self.image = enemy_image
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
         self.x = tile_width * pos_x
@@ -274,7 +275,7 @@ def generate_level(level):
                 Tile(f'block{level[y][x]}', x, y)
             elif level[y][x] in 'zxcv':
                 Thorn(f'thorn{level[y][x]}', x, y)
-            elif level[y][x] in 'qwe':
+            elif level[y][x] in 'qwer':
                 Decor(f'decor{level[y][x]}', x, y)
                 level[y] = level[y].replace(level[y][x], ' ', 1)
             elif level[y][x] == '@':
