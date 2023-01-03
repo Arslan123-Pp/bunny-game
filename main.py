@@ -18,37 +18,6 @@ def terminate():
     sys.exit()
 
 
-def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
-                  "Правила игры",
-                  "Если в правилах несколько строк,",
-                  "приходится выводить их построчно"]
-
-    fon = pygame.transform.scale(load_image('fon.jpeg'), (WIDTH, HEIGHT))
-    screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
-    text_coord = 50
-    for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('white'))
-        intro_rect = string_rendered.get_rect()
-        text_coord += 10
-        intro_rect.top = text_coord
-        intro_rect.x = 10
-        text_coord += intro_rect.height
-        screen.blit(string_rendered, intro_rect)
-    clock = pygame.time.Clock()
-    FPS = 50
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                terminate()
-            elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
-                return
-        pygame.display.flip()
-        clock.tick(FPS)
-
-
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 thorns_group = pygame.sprite.Group()
@@ -71,7 +40,7 @@ def load_level(filename):
 
     max_width = max(map(len, level_map))
 
-    return list(map(lambda x: x.ljust(max_width, '4'), level_map))
+    return list(map(lambda x: x.ljust(max_width, ' '), level_map))
 
 
 tile_images = {
@@ -104,6 +73,13 @@ player_image = load_image('mar.png')
 tile_width = tile_height = 50
 thorn_width = thorn_height = 50
 decor_width = decor_height = 50
+
+bunny_animations = {
+    'run': load_image('bunnyRun.png'),
+    'jump': load_image('bunnyJump.png'),
+    'fall': load_image('bunnyFall.png'),
+    'slide': load_image('bunnySlide.png')
+}
 
 
 class Tile(pygame.sprite.Sprite):
@@ -150,78 +126,126 @@ class Thorn(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
+    def __init__(self, sheet, columns, rows, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
-        self.image = player_image
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.i = 0
+        self.counter = 0
+
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
         self.x = tile_width * pos_x
         self.y = tile_height * pos_y
-        self.duration = False
-        self.speed = 4
-        self.jump = False
-        self.jumpCount = 0
-        self.jumpMx = 2
-        self.jumpN = None
+        self.duration = True
+        self.inwall, self.fall = False, False
+        self.speedx, self.speedy = 4, 5
+        self.jump, self.jumpCount, self.jumpMx, self.jumpN = False, 0, 1.5, None
+        self.mxsx, self.mxsy = self.rect.size
+        self.error, self.flag = False, False
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
 
     def update(self, *args):
-        if not pygame.sprite.spritecollideany(self, thorns_group):
-            x = (self.x + 24) // tile_width
-            if self.duration:
-                self.x += self.speed
-                self.rect = self.rect.move(self.speed, 0)
+        if self.counter % 6 == 0:
+            if self.jump is True:
+                self.image = bunny_animations['jump']
+                self.i = 0
+            elif self.fall is True:
+                self.image = bunny_animations['fall']
+                self.i = 0
+            elif self.inwall is True:
+                self.image = bunny_animations['slide']
+                self.i = 0
             else:
-                self.x -= self.speed
-                self.rect = self.rect.move(-self.speed, 0)
-            if args and args[0].type == pygame.KEYDOWN:
-                if ((not self.jump and level[(self.y + 40) // tile_height][(self.x) // tile_width] != ' ' and
-                     level[(self.y + 40) // tile_height][x] != ' ') or
-                        self.jumpCount < 2):
-                    if args[0].key == pygame.K_SPACE:
-                        self.jump = True
-                        self.jumpN = self.y // tile_height
-                        self.jumpCount += 1
-                        if level[self.y // tile_height][x] != ' ':
-                            self.duration = False
-                            self.x -= 25
-                            self.rect = self.rect.move(-25, 0)
-                        if level[self.y // tile_height][self.x // tile_width] != ' ':
-                            self.duration = True
-                            self.x += self.speed
-                            self.rect = self.rect.move(self.speed, 0)
-            if not self.jump:
-                if level[(self.y + 40) // tile_height][self.x // tile_width] in ' zxcv' \
-                        or level[(self.y + 40) // tile_height][x] in ' zxcv':
-                    self.rect = self.rect.move(0, 4)
-                    self.y += 4
-                else:
-                    self.jumpCount = 0
-            if self.jump:
-                if (level[self.y // tile_height][self.x // tile_width] in ' zxcv' and
-                        abs(self.y // tile_height - self.jumpN) != self.jumpMx):
-                    self.rect = self.rect.move(0, -4)
-                    self.y -= 4
+                self.image = self.frames[self.i % 4]
+                self.i += 1
+            if self.duration is False:
+                self.image = pygame.transform.flip(self.image, True, False)
+        self.counter += 1
+        if not pygame.sprite.spritecollideany(self, thorns_group):
+            if self.duration:
+                self.rect = self.rect.move(self.speedx, 0)
+                self.x += self.speedx
+            else:
+                self.rect = self.rect.move(-self.speedx, 0)
+                self.x -= self.speedx
+
+            th1 = level[int(self.y // tile_height)][self.x // tile_width]
+            th2 = level[int(self.y // tile_height)][(self.x + self.mxsx) // tile_width]
+            th3 = level[int((self.y + self.mxsy)) // tile_height][self.x // tile_width]
+            th4 = level[int((self.y + self.mxsy)) // tile_height][(self.x + self.mxsx) // tile_width]
+            th5 = level[int(self.y + self.mxsy - 5) // tile_height][self.x // tile_width]
+            th6 = level[int(self.y + self.mxsy - 5) // tile_height][(self.x + self.mxsx) // tile_width]
+
+            if (th1 not in ' ' or th2 not in ' ' or th3 not in '123 ' or th4 not in '123 ' or
+                    th5 not in ' ' or th6 not in ' '):
+                if (th3 in ' ' or th4 in ' ') and (th1 in ' ' or th2 in ' '):
+                    self.inwall = True
+                    self.jumpCount = -1
+                    self.jump = False
+                    self.rect = self.rect.move(0, 3)
+                    self.y += 3
+                    if self.duration:
+                        self.rect = self.rect.move(-self.speedx, 0)
+                        self.x -= self.speedx
+                    else:
+                        self.rect = self.rect.move(self.speedx, 0)
+                        self.x += self.speedx
+                if th3 not in ' ' and th4 not in ' ':
+                    self.inwall = False
+                    self.duration = not self.duration
+            else:
+                if self.inwall is True:
+                    self.duration = not self.duration
+                self.inwall = False
+
+            if th3 not in ' ' and th4 not in ' ' and th5 not in ' ' and th6 not in ' ':
+                self.rect = self.rect.move(0, -1)
+                self.y -= 1
+                self.error = True
+            else:
+                self.error = False
+
+            if self.error is True:
+                self.duration = not self.duration
+
+            if th3 in ' ' and th4 in ' ' and self.jump is False:
+                self.rect = self.rect.move(0, self.speedy)
+                self.y += self.speedy
+                self.fall = True
+            else:
+                self.fall = False
+
+            if th3 in '123' or th4 in '123':
+                self.jumpCount = 0
+
+            if self.jump is True:
+                if self.jumpN - (self.y + self.mxsy) <= self.jumpMx * 50 and th1 in ' ' and th2 in ' ':
+                    self.rect = self.rect.move(0, -self.speedy)
+                    self.y -= self.speedy
                 else:
                     self.jump = False
 
-            if (level[self.y // tile_height][x] not in ' zxcv' or
-                    level[self.y // tile_height][self.x // tile_width] not in ' zxcv' or
-                (level[(self.y + 39) // tile_height][x] not in ' zxcv' and
-                    level[(self.y + 39) // tile_height][self.x // tile_width] not in ' zxcv')):
-                if (level[(self.y + 39) // tile_height][self.x // tile_width] in ' zxcv' or
-                         level[(self.y + 40) // tile_height][x] == ' '):
-                    self.jumpCount = 0
-                    if self.duration:
-                        self.x -= self.speed
-                        self.rect = self.rect.move(-self.speed, 0)
-                    else:
-                        self.x += self.speed
-                        self.rect = self.rect.move(self.speed, 0)
-                else:
-                    if level[self.y // tile_height][x] != ' ' and self.duration is True:
-                        self.duration = False
-                    if level[self.y // tile_height][self.x // tile_width] != ' ' and self.duration is False:
-                        self.duration = True
+            if args and args[0].type == pygame.KEYDOWN:
+                if args[0].key == pygame.K_SPACE:
+                    if (self.jump is False and (th3 in '123' or th4 in '123')) or self.jumpCount < 1:
+                        if self.inwall is True:
+                            self.duration = not self.duration
+                            self.inwall = False
+                        self.jump = True
+                        self.jumpCount += 1
+                        self.jumpN = self.y + self.mxsy
+
 
 class Camera:
     def __init__(self):
@@ -235,7 +259,7 @@ class Camera:
     def update(self, target):
         self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
         self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
-        bg.update(self.dx, self.dy)
+        bg.update(self.dx, self.dy - 300)
 
 
 def generate_level(level):
@@ -251,7 +275,7 @@ def generate_level(level):
                 level[y] = level[y].replace(level[y][x], ' ', 1)
             elif level[y][x] == '@':
                 level[y] = level[y].replace('@', ' ')
-                new_player = Player(x, y)
+                new_player = Player(bunny_animations['run'], 4, 1, x, y)
     return new_player, x, y
 
 
@@ -260,10 +284,9 @@ if __name__ == '__main__':
     size = WIDTH, HEIGHT = width, height = 700, 500
 
     screen = pygame.display.set_mode(size)
-    pygame.display.set_caption('Bunny game')
+    pygame.display.set_caption('Bunny Game')
     level = load_level(name_file)
     player, level_x, level_y = generate_level(level)
-    start_screen()
     camera = Camera()
     bg = BackGround(0, 0)
     clock = pygame.time.Clock()
