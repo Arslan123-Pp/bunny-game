@@ -70,7 +70,6 @@ decor_images = {
     'decorr': load_image('carrot.png')
 }
 background = load_image('background.png')
-player_image = load_image('mar.png')
 enemy_image = load_image("enemy.png")
 
 tile_width = tile_height = 50
@@ -81,7 +80,8 @@ bunny_animations = {
     'run': load_image('bunnyRun.png'),
     'jump': load_image('bunnyJump.png'),
     'fall': load_image('bunnyFall.png'),
-    'slide': load_image('bunnySlide.png')
+    'slide': load_image('bunnySlide.png'),
+    'lose': load_image('bunnyLose.png')
 }
 
 
@@ -143,7 +143,7 @@ class Player(pygame.sprite.Sprite):
         self.x = tile_width * pos_x
         self.y = tile_height * pos_y
         self.duration = True
-        self.inwall, self.fall = False, False
+        self.inwall, self.fall, self.lose = False, False, False
         self.speedx, self.speedy = 4, 5
         self.jump, self.jumpCount, self.jumpMx, self.jumpN = False, 0, 1.5, None
         self.mxsx, self.mxsy = self.rect.size
@@ -159,23 +159,9 @@ class Player(pygame.sprite.Sprite):
                     frame_location, self.rect.size)))
 
     def update(self, *args):
-        if self.counter % 6 == 0:
-            if self.jump is True:
-                self.image = bunny_animations['jump']
-                self.i = 0
-            elif self.fall is True:
-                self.image = bunny_animations['fall']
-                self.i = 0
-            elif self.inwall is True:
-                self.image = bunny_animations['slide']
-                self.i = 0
-            else:
-                self.image = self.frames[self.i % 4]
-                self.i += 1
-            if self.duration is False:
-                self.image = pygame.transform.flip(self.image, True, False)
-        self.counter += 1
-        if not pygame.sprite.spritecollideany(self, thorns_group):
+        self.animation()
+        if (not pygame.sprite.spritecollideany(self, thorns_group) and
+                not pygame.sprite.spritecollideany(self, enemy_group) and self.lose is False):
             if self.duration:
                 self.rect = self.rect.move(self.speedx, 0)
                 self.x += self.speedx
@@ -190,10 +176,9 @@ class Player(pygame.sprite.Sprite):
             th5 = level[int(self.y + self.mxsy - 5) // tile_height][self.x // tile_width]
             th6 = level[int(self.y + self.mxsy - 5) // tile_height][(self.x + self.mxsx) // tile_width]
 
-            if (th1 not in ' ' or th2 not in ' ' or th3 not in '123 ' or th4 not in '123 ' or
-                    th5 not in ' ' or th6 not in ' '):
-                if (th3 in ' ' or th4 in ' ') and (th1 in ' ' or th2 in ' '):
-                    self.inwall = True
+            if (th1 not in ' zxcv' or th2 not in ' zxcv' or th3 not in '123zxcv ' or th4 not in '123zxcv ' or
+                    th5 not in ' zxcv' or th6 not in ' zxcv'):
+                if (th3 in ' zxcv' or th4 in ' zxcv') and (th1 in ' zxcv' or th2 in ' zxcv'):
                     self.jumpCount = -1
                     self.jump = False
                     self.rect = self.rect.move(0, 3)
@@ -204,6 +189,7 @@ class Player(pygame.sprite.Sprite):
                     else:
                         self.rect = self.rect.move(self.speedx, 0)
                         self.x += self.speedx
+                    self.inwall = True
                 if th3 not in ' ' and th4 not in ' ':
                     self.inwall = False
                     self.duration = not self.duration
@@ -222,7 +208,7 @@ class Player(pygame.sprite.Sprite):
             if self.error is True:
                 self.duration = not self.duration
 
-            if th3 in ' ' and th4 in ' ' and self.jump is False:
+            if th3 in ' zxcv' and th4 in ' zxcv' and self.jump is False:
                 self.rect = self.rect.move(0, self.speedy)
                 self.y += self.speedy
                 self.fall = True
@@ -248,22 +234,75 @@ class Player(pygame.sprite.Sprite):
                         self.jump = True
                         self.jumpCount += 1
                         self.jumpN = self.y + self.mxsy
+        else:
+            if self.lose is False:
+                self.lose = True
+                self.jumpN = self.y + self.mxsy
+                self.jump = True
+            if self.jump is True:
+                if self.jumpN - (self.y + self.mxsy) <= 120:
+                    self.rect = self.rect.move(0, -5)
+                    self.y -= 5
+                else:
+                    self.jump = False
+            if self.jump is False:
+                self.rect = self.rect.move(0, 7)
+                self.y += 7
+        if self.lose is False:
+            camera.update(player)
+            for sprite in all_sprites:
+                camera.apply(sprite)
 
+    def animation(self):
+        if (not pygame.sprite.spritecollideany(self, thorns_group) and
+                not pygame.sprite.spritecollideany(self, enemy_group) and self.lose is False):
+            if self.counter % 6 == 0:
+                if self.jump is True:
+                    self.image = bunny_animations['jump']
+                    self.i = 0
+                elif self.fall is True:
+                    self.image = bunny_animations['fall']
+                    self.i = 0
+                elif self.inwall is True:
+                    self.image = bunny_animations['slide']
+                    self.i = 0
+                else:
+                    self.image = self.frames[self.i % 4]
+                    self.i += 1
+                if self.duration is False:
+                    self.image = pygame.transform.flip(self.image, True, False)
+            self.counter += 1
+        else:
+            self.image = bunny_animations['lose']
 
 
 class Enemy(pygame.sprite.Sprite):
-
-    def __init__(self, pos_x, pos_y):
+    def __init__(self, sheet, columns, rows, pos_x, pos_y):
         super().__init__(enemy_group, all_sprites)
-        self.image = enemy_image
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.i = 0
+        self.counter = 0
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
         self.x = tile_width * pos_x
         self.y = tile_height * pos_y
+        self.mxsx, self.mxsy = self.rect.size
         self.nx = pos_x
         self.ny = pos_y
         self.duration = True
-        self.speed = 3
+        self.speed = 1
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
 
     def update(self):
         if self.duration:
@@ -272,9 +311,23 @@ class Enemy(pygame.sprite.Sprite):
         else:
             self.x -= self.speed
             self.rect = self.rect.move(-self.speed, 0)
-        x = self.x // tile_width
-        if abs(self.nx - x) == 2:
+        self.animation()
+        th1 = level[int(self.y // tile_height)][self.x // tile_width]
+        th2 = level[int(self.y // tile_height)][(self.x + self.mxsx) // tile_width]
+        th3 = level[int((self.y + self.mxsy)) // tile_height][self.x // tile_width]
+        th4 = level[int((self.y + self.mxsy)) // tile_height][(self.x + self.mxsx) // tile_width]
+        if th1 not in ' ' or th2 not in ' ' or th3 not in '123' or th4 not in '123':
             self.duration = not self.duration
+
+    def animation(self):
+        if self.counter % 15 == 0:
+                self.image = self.frames[self.i % 2]
+                self.image = pygame.transform.flip(self.image, True, False)
+                self.i += 1
+                if self.duration is False:
+                    self.image = pygame.transform.flip(self.image, True, False)
+        self.counter += 1
+
 
 class Camera:
     def __init__(self):
@@ -304,10 +357,10 @@ def generate_level(level):
                 level[y] = level[y].replace(level[y][x], ' ', 1)
             elif level[y][x] == '@':
                 level[y] = level[y].replace('@', ' ')
-                new_player = Player(x, y)
-            elif level[y][x] == '!':
-                new_enemy = Enemy(x, y)
                 new_player = Player(bunny_animations['run'], 4, 1, x, y)
+            elif level[y][x] == '!':
+                level[y] = level[y].replace('!', ' ')
+                enemy = Enemy(load_image('pigWalk.png'), 2, 1, x, y)
     return new_player, x, y
 
 
@@ -337,10 +390,8 @@ if __name__ == '__main__':
         decor_group.draw(screen)
         all_sprites.draw(screen)
         player_group.draw(screen)
+        enemy_group.draw(screen)
         all_sprites.update()
         pygame.display.flip()
-        camera.update(player)
-        for sprite in all_sprites:
-            camera.apply(sprite)
         clock.tick(FPS)
     pygame.quit()
