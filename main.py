@@ -11,16 +11,17 @@ def load_image(name):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
     image = pygame.image.load(fullname)
-    # функция возвращает Surface, на котором расположеноизображение
+    # функция возвращает Surface, на котором расположено изображение
     return image
 
 
 def terminate():
+    # аварийное завершение
     pygame.quit()
     sys.exit()
-    # аварийное завершение
 
 
+# группы спрайтов
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 thorns_group = pygame.sprite.Group()
@@ -29,7 +30,6 @@ finish_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 background_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
-# группы спрайтов
 
 
 def load_level(filename):
@@ -47,6 +47,7 @@ def load_level(filename):
     return list(map(lambda x: x.ljust(max_width, ' '), level_map))
 
 
+# хранение изображения блоков, декора, шипов и анимаций кролика в словарях
 block_images = {
     'block1': load_image('block1.png'),
     'block2': load_image('block2.png'),
@@ -80,7 +81,6 @@ bunny_animations = {
     'slide': load_image('bunnySlide.png'),
     'lose': load_image('bunnyLose.png')
 }
-# хранение изображения блоков, декора, шипов и анимаций кролика в словарях
 
 background = load_image('background.png')
 finish = load_image('finish.png')
@@ -90,21 +90,22 @@ tile_width = tile_height = 50
 thorn_width = thorn_height = 50
 decor_width = decor_height = 50
 
-size = WIDTH, HEIGHT = width, height = 700, 500
 # длина, ширина экрана
+size = WIDTH, HEIGHT = width, height = 700, 500
 
 
 class Block(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
+        # класс иницилизирует и распологает блоки в определенных координатах
         super().__init__(tiles_group, all_sprites)
         self.image = block_images[tile_type]
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
-        # класс иницилизирует и распологает блоки в определенных координатах
 
 
 class Finish(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, columns=4, rows=1):
+        # класс иницилизирует и распологает финиш в определенных координатах
         super().__init__(finish_group, all_sprites)
         self.frames = []
         self.cut_sheet(finish_flag, columns, rows)
@@ -113,7 +114,6 @@ class Finish(pygame.sprite.Sprite):
         self.image = finish
         self.rect = self.image.get_rect().move(
             decor_width * pos_x, decor_height * pos_y - 150)
-        # класс иницилизирует и распологает финиш в определенных координатах
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -125,6 +125,7 @@ class Finish(pygame.sprite.Sprite):
                     frame_location, self.rect.size)))
 
     def update(self):
+        # если игрок соприкоснулся финиша, начинается анимация поднятия флага
         if pygame.sprite.spritecollideany(self, player_group):
             if self.counter % 5 == 0:
                 self.image = self.image1
@@ -132,7 +133,6 @@ class Finish(pygame.sprite.Sprite):
                     self.image1 = self.frames[self.i]
                     self.i += 1
             self.counter += 1
-        # если игрок соприкоснулся с финишом, начинается анимация поднятия флага
 
 
 class BackGround(pygame.sprite.Sprite):
@@ -143,14 +143,15 @@ class BackGround(pygame.sprite.Sprite):
         self.rect.move(x, y)
 
     def update(self, target):
+        # позиционировать задний фон на объекте target
         self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
         self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
         self.rect.move(self.dx, self.dy)
-        # позиционировать задний фон на объекте target
 
 
 class Decor(pygame.sprite.Sprite):
     def __init__(self, decor_type, pos_x, pos_y):
+        # класс иницилизирует и распологает декор в определенных координатах
         super().__init__(decor_group, all_sprites)
         self.image = decor_images[decor_type]
         if decor_type == 'decore':
@@ -159,11 +160,11 @@ class Decor(pygame.sprite.Sprite):
         else:
             self.rect = self.image.get_rect().move(
                 decor_width * pos_x, decor_height * pos_y)
-        # класс иницилизирует и распологает декор в определенных координатах
 
 
 class Thorn(pygame.sprite.Sprite):
     def __init__(self, thorn_type, pos_x, pos_y, level):
+        # класс иницилизирует и распологает шипы в определенных координатах
         super().__init__(thorns_group, all_sprites)
         self.image = thorn_images[thorn_type]
         if level[pos_y][pos_x - 1] != thorn_type[-1]:
@@ -172,11 +173,11 @@ class Thorn(pygame.sprite.Sprite):
         else:
             self.rect = self.image.get_rect().move(
                 thorn_width * pos_x + 25, thorn_height * pos_y)
-        # класс иницилизирует и распологает шипы в определенных координатах
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, pos_x, pos_y, level):
+        # класс иницилизирует и распологает игрока в определенных координатах
         super().__init__(player_group, all_sprites)
         self.frames = []
         self.cut_sheet(sheet, columns, rows)
@@ -188,19 +189,18 @@ class Player(pygame.sprite.Sprite):
             tile_width * pos_x, tile_height * pos_y)
         self.x = tile_width * pos_x
         self.y = tile_height * pos_y
-        self.duration = True
         # определение направления, True - направо, False - налево
-        self.inwall, self.fall, self.lose, self.stand = False, False, False, True
-        self.kill, self.minijump, self.win = False, False, False
+        self.duration = True
         # определение состояния игрока (скольжение по стене, падение, проигрыш, стояние на месте
         # убиство врага, мини прыжок после убийства врага, победа
-        self.speedx, self.speedy = 4, 5
+        self.inwall, self.fall, self.lose, self.stand = False, False, False, True
+        self.kill, self.minijump, self.win = False, False, False
         # определение скорости игрока по x и y
-        self.jump, self.jumpCount, self.jumpMx, self.jumpN = False, 0, 1.5, None
+        self.speedx, self.speedy = 4, 5
         # прыгает ли персонаж, сколько прыжков еще может сделать, максимальная высота прыжка, растояние от земли
+        self.jump, self.jumpCount, self.jumpMx, self.jumpN = False, 0, 1.5, None
         self.mxsx, self.mxsy = self.rect.size
         self.flag = False, False
-        # класс иницилизирует и распологает игрока в определенных координатах
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -213,34 +213,34 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, *args):
         self.animation()
+        # если игрок стоит, и пользователь нажимает на любую кнопку, то он перестает стоять
         if self.stand is True:
             if args and args[0].type == pygame.KEYDOWN:
                 self.stand = False
-            # если игрок стоит, и пользователь нажимает на любую кнопку, то он перестает стоять
+        # если игрок не соприкоснулся с шипами и врагом, а также он не проиграл, то условие проходит
         elif (not pygame.sprite.spritecollideany(self, thorns_group) and
                 not pygame.sprite.spritecollideany(self, enemy_group) and self.lose is False):
-            # если игрок не соприкоснулся с шипами и врагом, а также он не проиграл, то условие проходит
+            # Если направление True, то он идет направо, иначе налево
             if self.duration is True:
                 self.rect = self.rect.move(self.speedx, 0)
                 self.x += self.speedx
             else:
                 self.rect = self.rect.move(-self.speedx, 0)
                 self.x -= self.speedx
-            # Если направление True, то он идет направо, иначе налево
 
+            # получение высокой и низкой точки координаты игрока
             th1 = self.level[int(self.y // tile_height)][self.x // tile_width]
             th2 = self.level[int(self.y // tile_height)][(self.x + self.mxsx) // tile_width]
             th3 = self.level[int((self.y + self.mxsy)) // tile_height][self.x // tile_width]
             th4 = self.level[int((self.y + self.mxsy)) // tile_height][(self.x + self.mxsx) // tile_width]
             th5 = self.level[int(self.y + self.mxsy - 5) // tile_height][self.x // tile_width]
             th6 = self.level[int(self.y + self.mxsy - 5) // tile_height][(self.x + self.mxsx) // tile_width]
-            # получение высокой и низкой точки координаты игрока
 
+            # если высокая или низкая точка не находятся в воздухе
             if (th1 not in ' zxcv' or th2 not in ' zxcv' or th3 not in '123zxcv ' or th4 not in '123zxcv ' or
                     th5 not in ' zxcv' or th6 not in ' zxcv'):
-                # если высокая или низкая точка не находятся в воздухе
+                # если нижняя точка находится в воздухе, то начинается процесс скольжения по стене
                 if (th3 in ' zxcv' or th4 in ' zxcv') and (th1 in ' zxcv' or th2 in ' zxcv'):
-                    # если нижняя точка находится в воздухе, то начинается процесс скольжения по стене
                     self.jumpCount = -1
                     self.jump = False
                     self.rect = self.rect.move(0, 3)
@@ -252,53 +252,55 @@ class Player(pygame.sprite.Sprite):
                         self.rect = self.rect.move(self.speedx, 0)
                         self.x += self.speedx
                     self.inwall = True
+                # если нижняя точка не находится в воздухе, то меняется направление игрока
                 if th3 not in ' ' and th4 not in ' ':
-                    # если нижняя точка не находится в воздухе, то меняется направление игрока
                     self.inwall = False
                     self.duration = not self.duration
+            # если высокая и низкая точка находятся в воздухе, он перестает скользить по стене
             else:
-                # если высокая и низкая точка находятся в воздухе, он перестает скользить по стене
+                # если он скользил по стене, то меняется направление
                 if self.inwall is True:
-                    # если он скользил по стене, то меняется направление
                     self.duration = not self.duration
                 self.inwall = False
 
+            # если игрок проваливается под блоки, то он начинает подниматься и менять направление
             if th3 not in ' ' and th4 not in ' ' and th5 not in ' ' and th6 not in ' ':
                 self.rect = self.rect.move(0, -1)
                 self.y -= 1
                 self.duration = not self.duration
-                # если игрок проваливается под блоки, то он начинает подниматься и менять направление
 
+            # если нижняя точка находится в воздухе и игрок не находится в состоянии прыжка, то он падает
             if th3 in ' zxcv' and th4 in ' zxcv' and self.jump is False and self.minijump is False:
                 self.rect = self.rect.move(0, self.speedy)
                 self.y += self.speedy
                 self.fall = True
-                # если нижняя точка находится в воздухе и игрок не находится в состоянии прыжка, то он падает
             else:
                 self.fall = False
 
+            # если игрок на земле, то количество прыжков обнуляется
             if th3 in '123' or th4 in '123':
                 self.jumpCount = 0
-                # если игрок на земле, то количество прыжков обнуляется
 
+            # если игрок находится в состоянии мини прыжка, он ни с чем не столкнулся и он не преодолел 1 блок,
+            # то персонаж летит вверх
             if self.minijump is True:
                 if self.jumpN - (self.y + self.mxsy) <= 50 and th1 in ' ' and th2 in ' ':
                     self.rect = self.rect.move(0, -self.speedy)
                     self.y -= self.speedy
-                    # если игрок находится в состоянии мини прыжка, он ни с чем не столкнулся и он не преодолел 1 блок,
-                    # то персонаж летит вверх
                 else:
                     self.minijump = False
 
+            # если игрок находится в состоянии прыжка, он ни с чем не столкнулся и он не преодолел 1 блок,
+            # то персонаж летит вверх
             if self.jump is True:
                 if self.jumpN - (self.y + self.mxsy) <= self.jumpMx * 50 and th1 in ' ' and th2 in ' ':
                     self.rect = self.rect.move(0, -self.speedy)
                     self.y -= self.speedy
-                    # если игрок находится в состоянии прыжка, он ни с чем не столкнулся и он не преодолел 1 блок,
-                    # то персонаж летит вверх
                 else:
                     self.jump = False
 
+            # если игрок нажал клавишу space, и если он не находится в состоянии прыжка и персонаж
+            # находится на земле, или он делает второй прыжок, то он переходит в состояние прыжка
             if args and args[0].type == pygame.KEYDOWN:
                 if args[0].key == pygame.K_SPACE:
                     if (self.jump is False and (th3 in '123' or th4 in '123')) or self.jumpCount < 1:
@@ -308,8 +310,8 @@ class Player(pygame.sprite.Sprite):
                         self.jump = True
                         self.jumpCount += 1
                         self.jumpN = self.y + self.mxsy
-                        # если игрок нажал клавишу space, и если он не находится в состоянии прыжка и персонаж
-                        # находится на земле, или он делает второй прыжок, то он переходит в состояние прыжка
+        # если игрок соприкоснулся с врагом не во время падения или соприкоснулся с шипами, то начинается анимация
+        # проигрыша
         else:
             if self.lose is False:
                 self.lose = True
@@ -324,9 +326,9 @@ class Player(pygame.sprite.Sprite):
             if self.jump is False:
                 self.rect = self.rect.move(0, 7)
                 self.y += 7
-            # если игрок соприкоснулся с врагом не во время падения или соприкоснулся с шипами, то начинается анимация
-            # проигрыша
 
+        # если персонаж соприкоснулся с врагом во время падения и он находится на расстоянии 1 блока от земли
+        # то он убивает врага
         if pygame.sprite.spritecollideany(self, enemy_group) and self.fall and self.lose is False:
             if self.level[int((self.y + self.mxsy + 40)) // tile_height][self.x // tile_width] == ' ':
                 self.kill = True
@@ -334,15 +336,15 @@ class Player(pygame.sprite.Sprite):
                 self.fall = False
                 self.jumpCount = -1
                 self.jumpN = self.y + self.mxsy
-            # если персонаж соприкоснулся с врагом во время падения и он находится на расстоянии 1 блока от земли
-            # то он убивает врага
         else:
             self.kill = False
+
+        # если игрок соприкоснулся с финишом, то он побеждает
         if pygame.sprite.spritecollideany(self, finish_group):
             self.win = True
-            # если игрок соприкоснулся с финишом, то он побеждает
 
     def animation(self):
+        # происходит анимация персонажа, в зависимости от его нынешнего состояния
         if (not pygame.sprite.spritecollideany(self, thorns_group) and
                 not pygame.sprite.spritecollideany(self, enemy_group) and self.lose is False):
             if self.counter % 6 == 0:
@@ -366,33 +368,33 @@ class Player(pygame.sprite.Sprite):
             self.counter += 1
         else:
             self.image = bunny_animations['lose']
-        # происходит анимация персонажа, в зависимости от его нынешнего состояния
 
     def is_lose(self):
+        # функция проверяет, проиграл ли персонаж
         if self.lose is True:
             return True
         return False
-        # функция проверяет, проиграл ли персонаж
 
     def is_kill(self):
+        # функция проверяет, убил ли персонаж врага
         if self.kill is True:
             return True
         return False
-        # функция проверяет, убил ли персонаж врага
 
     def is_win(self):
+        # функция проверяет, победил ли персонаж
         if self.win is True:
             return True
         return False
-        # функция проверяет, победил ли персонаж
 
     def set_pause(self):
-        self.stand = True
         # функция останавливает игрока во время паузы
+        self.stand = True
 
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, pos_x, pos_y, level):
+        # класс иницилизирует и распологает игрока в определенных координатах
         super().__init__(enemy_group, all_sprites)
         self.frames = []
         self.cut_sheet(sheet, columns, rows)
@@ -408,7 +410,6 @@ class Enemy(pygame.sprite.Sprite):
         self.duration = True
         self.speed = 1
         self.level = level
-        # класс иницилизирует и распологает игрока в определенных координатах
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -420,24 +421,27 @@ class Enemy(pygame.sprite.Sprite):
                     frame_location, self.rect.size)))
 
     def update(self):
+        # Если направление True, то враг идет направо, иначе налево
         if self.duration:
             self.x += self.speed
             self.rect = self.rect.move(self.speed, 0)
         else:
             self.x -= self.speed
             self.rect = self.rect.move(-self.speed, 0)
-        # Если направление True, то враг идет направо, иначе налево
         self.animation()
+
+        # получение высокой и низкой точки координаты игрока
         th1 = self.level[int(self.y // tile_height)][self.x // tile_width]
         th2 = self.level[int(self.y // tile_height)][(self.x + self.mxsx) // tile_width]
         th3 = self.level[int((self.y + self.mxsy)) // tile_height][self.x // tile_width]
         th4 = self.level[int((self.y + self.mxsy)) // tile_height][(self.x + self.mxsx) // tile_width]
-        # получение высокой и низкой точки координаты игрока
+
+        # если враг натыкается на стену или пропасть, то он меняет направление
         if th1 not in ' ' or th2 not in ' ' or th3 not in '123' or th4 not in '123':
             self.duration = not self.duration
-            # если враг натыкается на стену или пропасть, то он меняет направление
 
     def animation(self):
+        # анимация ходьбы врага
         if self.counter % 15 == 0:
                 self.image = self.frames[self.i % 2]
                 self.image = pygame.transform.flip(self.image, True, False)
@@ -445,34 +449,33 @@ class Enemy(pygame.sprite.Sprite):
                 if self.duration is False:
                     self.image = pygame.transform.flip(self.image, True, False)
         self.counter += 1
-        # анимация врага
 
     def is_touch(self):
+        # функция проверяет, прикоснулся ли игрок к врагу
         if pygame.sprite.spritecollideany(self, player_group):
             return True
         return False
-        # функция проверяет, прикоснулся ли игрок к врагу
 
     def delete_enemy(self):
-        self.kill()
         # функция удаляет врага
+        self.kill()
 
 
 class Camera:
     def __init__(self):
+        # зададим начальный сдвиг камеры
         self.dx = 0
         self.dy = 0
-        # зададим начальный сдвиг камеры
 
     def apply(self, obj):
+        # сдвинуть объект obj на смещение камеры
         obj.rect.x += self.dx
         obj.rect.y += self.dy
-        # сдвинуть объект obj на смещение камеры
 
     def update(self, target):
+        # позиционировать камеру на объекте target
         self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
         self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
-        # позиционировать камеру на объекте target
 
 
 def generate_level(level):
@@ -500,9 +503,10 @@ def generate_level(level):
     return new_player, lst
 
 
-screen = pygame.display.set_mode((width, height))
 # screen — холст, на котором нужно рисовать
+screen = pygame.display.set_mode((width, height))
 
+# загрузка изображений кнопок
 start_img_off = load_image('startBtnof.png')
 exit_img_off = load_image('exitBtnof.png')
 resume_img_off = load_image('resumeBtnof.png')
@@ -518,11 +522,11 @@ exit2_img_on = load_image('exit2Btnon.png')
 pause_img = load_image('pause.png')
 loss_img = load_image('loss.png')
 complete_img = load_image('complete.png')
-# загрузка изображений кнопок
 
 
 class Button:
     def __init__(self, x, y, image1, image2, scale):
+        # инициализация и расположение кнопки
         width, height = image1.get_width(), image1.get_height()
         self.image = pygame.transform.scale(image1, (int(width * scale), int(height * scale)))
         self.rect = self.image.get_rect()
@@ -530,9 +534,9 @@ class Button:
         self.imageon = image2
         self.imageof = image1
         self.clicked = False
-        # инициализация и расположение кнопки
 
     def draw(self):
+        # рисуем кнопку на экране
         action = False
         pos = pygame.mouse.get_pos()
         if self.rect.collidepoint(pos):
@@ -546,29 +550,29 @@ class Button:
             self.clicked = False
         screen.blit(self.image, (self.rect.x, self.rect.y))
         return action
-        # рисуем кнопку на экране
 
 
 def main_menu():
     pygame.display.set_caption('Bunny Game')
+    # Создание кнопок
     start_button = Button(100, 150, start_img_off, start_img_on, 1)
     exit_button = Button(100, 300, exit_img_off, exit_img_on, 1)
-    # Создание кнопок
+
     clock = pygame.time.Clock()
     FPS = 60
     running = True
     while running:
+        # окно будет отрисововаться до тех пор, пока пользователь не нажал на одну из кнопок
         screen.fill('lightblue')
+        # если пользователь нажал на кнопку 'play', то заканчивается цикл, и окно переходит в раздел уровней
         if start_button.draw() is True:
             running = False
-            # если пользователь нажал на кнопку 'play', то заканчивается цикл, и окно переходит в раздел уровней
+        # если пользователь нажал на кнопку 'exit', то происходит завершение работы
         if exit_button.draw() is True:
             terminate()
-            # если пользователь нажал на кнопку 'exit', то происходит завершение работы
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-        # окно будет отрисововаться до тех пор, пока пользователь не нажал на одну из кнопок
         pygame.display.update()
         clock.tick(FPS)
     game('map.txt')
@@ -578,8 +582,10 @@ def game(name_file):
     level = load_level(name_file)
     ending = ''
     start, timer = None, False
-    player, lst_enemies = generate_level(level)
+
     # получение из функции generate_level игрока, список врагов
+    player, lst_enemies = generate_level(level)
+
     clock = pygame.time.Clock()
     camera = Camera()
     bg = BackGround(0, 0)
@@ -590,9 +596,12 @@ def game(name_file):
             if event.type == pygame.QUIT:
                 terminate()
             if event.type == pygame.KEYDOWN:
+                # если пользователь нажал клавишу space, то вызывается функция update в player
                 if event.key == pygame.K_SPACE:
                     player.update(event)
-                    # если пользователь нажал клавишу space, то вызывается функция update в player
+                # если пользователь нажал на клавишу escape, то вызывается функция pause, если функция
+                # возвращает 1, то цикл продолжается, 2 - цикл останавливается и игра начинается заново
+                # 3 - цикл останавливается и вызывается функция main_menu, после которой открывается окно меню
                 if event.key == pygame.K_ESCAPE:
                     player.set_pause()
                     if pause() == 1:
@@ -601,21 +610,22 @@ def game(name_file):
                         ending = 'restart'
                     if pause() == 3:
                         ending = 'exit'
-                    # если пользователь нажал на клавишу escape, то вызывается функция pause, если функция
-                    # возвращает 1, то цикл продолжается, 2 - цикл останавливается и игра начинается заново
-                    # 3 - цикл останавливается и вызывается функция main_menu, после которой открывается окно меню
+
         screen.fill(pygame.Color('lightblue'))
         decor_group.draw(screen)
         finish_group.draw(screen)
         all_sprites.draw(screen)
         player_group.draw(screen)
         enemy_group.draw(screen)
+        # если пользователь проиграл или победил, то камера прекращает следить за персонажем
         if player.is_lose() is False and player.is_win() is False:
             camera.update(player)
             for sprite in all_sprites:
                 camera.apply(sprite)
                 bg.update(player)
-            # если пользователь проиграл или победил, то камера прекращает следить за персонажем
+
+        # если пользователь проиграл, создается таймер, по истечению которого цикл прекращается и вызывается
+        # функция loss, открывается окно с заголовком loss
         if player.is_lose() is True:
             if timer is False:
                 start = time.time()
@@ -623,14 +633,16 @@ def game(name_file):
             else:
                 if time.time() - start > 1.5:
                     ending = 'loss'
-            # если пользователь проиграл, создается таймер, по истечению которого цикл прекращается и вызывается
-            # функция loss, открывается окно с заголовком loss
+
+        # если персонаж убивает кого-нибудь из врагов, то программа смотрит, кого убил игрок, и удаляет врага
         if player.is_kill() is True:
             for i, enemy in enumerate(lst_enemies):
                 if enemy.is_touch():
                     enemy.delete_enemy()
                     del lst_enemies[i]
-            # если персонаж убивает кого-нибудь из врагов, то программа смотрит, кого убил игрок, и удаляет врага
+
+        # если пользователь победил, создается таймер, по истечению которого цикл прекращается и вызывается
+        # функция win, открывается окно с заголовком celebrate
         if player.is_win() is True:
             if timer is False:
                 start = time.time()
@@ -638,14 +650,15 @@ def game(name_file):
             else:
                 if time.time() - start > 1.7:
                     ending = 'win'
-            # если пользователь победил, создается таймер, по истечению которого цикл прекращается и вызывается
-            # функция win, открывается окно с заголовком celebrate
+
+        # если ending больше не пустая строка то цикл прекращается
         if ending:
             running = False
-            # если ending больше не пустая строка то цикл прекращается
         all_sprites.update()
         pygame.display.flip()
         clock.tick(FPS)
+
+    # после окончания цикла все спрайты очищаются
     all_sprites.empty()
     tiles_group.empty()
     thorns_group.empty()
@@ -654,7 +667,7 @@ def game(name_file):
     player_group.empty()
     background_group.empty()
     enemy_group.empty()
-    # после окончания цикла все спрайты очищаются
+
     if ending == 'restart':
         game(name_file)
     elif ending == 'exit':
@@ -674,25 +687,27 @@ def game(name_file):
 def pause():
     pygame.init()
     paused = True
+    # Создание кнопок
     resume_button = Button(width // 2 - (324 // 2), 120, resume_img_off, resume_img_on, 1)
     restart_button = Button(width // 2 - (324 // 2), 235, restart_img_off, restart_img_on, 1)
     exit_button = Button(width // 2 - (324 // 2), 350, exit2_img_off, exit2_img_on, 1)
-    # Создание кнопок
+
     clock = pygame.time.Clock()
     while paused:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
+        # если пользователь нажал на кнопку resume, то цикл в функции game() прододжается
         if resume_button.draw() is True:
             return 1
-            # если пользователь нажал на кнопку resume, то цикл в функции game() прододжается
+        # если пользователь нажал на кнопку restart, то цикл в функции game() прекращается и опять вызывается
         if restart_button.draw() is True:
             return 2
-            # если пользователь нажал на кнопку restart, то цикл в функции game() прекращается и опять вызывается
+        # если пользователь нажал на кнопку exit, то цикл в функции game() прекращается и вызывается функция
+        # main_menu, и открывается окно меню
         if exit_button.draw() is True:
             return 3
-            # если пользователь нажал на кнопку exit, то цикл в функции game() прекращается и вызывается функция
-            # main_menu, и открывается окно меню
+
         screen.blit(pause_img, (width // 2 - (270 // 2), 10))
         pygame.display.update()
         clock.tick(15)
@@ -708,13 +723,13 @@ def loss():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
+        # если пользователь нажал на кнопку restart, то цикл в функции game() прекращается и опять вызывается
         if restart_button.draw() is True:
             return 1
-            # если пользователь нажал на кнопку restart, то цикл в функции game() прекращается и опять вызывается
+        # если пользователь нажал на кнопку exit, то цикл в функции game() прекращается и вызывается функция
+        # main_menu, и открывается окно меню
         if exit_button.draw() is True:
             return 2
-            # если пользователь нажал на кнопку exit, то цикл в функции game() прекращается и вызывается функция
-            # main_menu, и открывается окно меню
         screen.blit(loss_img, (width // 2 - (320 // 2), 10))
         pygame.display.update()
         clock.tick(15)
@@ -730,13 +745,14 @@ def win():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
+        # если пользователь нажал на кнопку restart, то цикл в функции game() прекращается и опять вызывается
         if restart_button.draw() is True:
             return 1
-            # если пользователь нажал на кнопку restart, то цикл в функции game() прекращается и опять вызывается
+        # если пользователь нажал на кнопку exit, то цикл в функции game() прекращается и вызывается функция
+        # main_menu, и открывается окно меню
         if exit_button.draw() is True:
             return 2
-            # если пользователь нажал на кнопку exit, то цикл в функции game() прекращается и вызывается функция
-            # main_menu, и открывается окно меню
+
         screen.blit(complete_img, (width // 2 - (400 // 2), 10))
         pygame.display.update()
         clock.tick(15)
