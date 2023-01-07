@@ -1,7 +1,10 @@
+import random
+
 import pygame
 import sys
 import os
 import time
+from random import choice
 
 
 def load_image(name):
@@ -520,6 +523,11 @@ loss_img = load_image('loss.png')
 complete_img = load_image('complete.png')
 # загрузка изображений кнопок
 
+bunny_game1 = load_image('bunny-game1.png')
+bunny_game2 = load_image('bunny-game2.png')
+bunny_game3 = load_image('bunny-game3.png')
+# загрузка изображения названия игры
+
 
 class Button:
     def __init__(self, x, y, image1, image2, scale):
@@ -551,14 +559,18 @@ class Button:
 
 def main_menu():
     pygame.display.set_caption('Bunny Game')
-    start_button = Button(100, 150, start_img_off, start_img_on, 1)
-    exit_button = Button(100, 300, exit_img_off, exit_img_on, 1)
+    start_button = Button(80, 150, start_img_off, start_img_on, 1)
+    exit_button = Button(80, 300, exit_img_off, exit_img_on, 1)
     # Создание кнопок
+    bunny_game = random.choice([bunny_game1, bunny_game2, bunny_game3])
+    # рандомный выбор надписи
     clock = pygame.time.Clock()
     FPS = 60
     running = True
     while running:
         screen.fill('lightblue')
+        screen.blit(bunny_game, (310, 90))
+        # отрисовка окна и надписи
         if start_button.draw() is True:
             running = False
             # если пользователь нажал на кнопку 'play', то заканчивается цикл, и окно переходит в раздел уровней
