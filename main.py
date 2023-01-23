@@ -3,6 +3,7 @@ import sys
 import os
 import time
 import random
+pygame.font.init()
 
 
 def load_image(name):
@@ -33,6 +34,7 @@ background_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 hitbox_group = pygame.sprite.Group()
 trampoline_group = pygame.sprite.Group()
+carrot_group = pygame.sprite.Group()
 
 
 def load_level(filename):
@@ -88,7 +90,17 @@ bunny_animations = {
     'slide': load_image('bunnySlide.png'),
     'lose': load_image('bunnyLose.png'),
 }
+bunny_animations_2 = {
+    'stand': load_image('bunnyStand2.png'),
+    'run': load_image('bunnyRun2.png'),
+    'jump': load_image('bunnyJump2.png'),
+    'fall': load_image('bunnyFall2.png'),
+    'slide': load_image('bunnySlide2.png'),
+    'lose': load_image('bunnyLose2.png'),
+}
 
+carrot = load_image('carrot_game.png')
+carrot_1 = load_image('carrot_1.png')
 backgrounds = load_image('background.png')
 background = pygame.transform.scale(backgrounds, (950, 650))
 finish = load_image('finish.png')
@@ -469,6 +481,33 @@ class Player(pygame.sprite.Sprite):
         self.stand = True
 
 
+class Carrot(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y, level):
+        # класс иницилизирует и распологает морковку в определенных координатах
+        super().__init__(carrot_group, all_sprites)
+        self.image = carrot_1
+        self.rect = self.image.get_rect().move(
+            tile_width * pos_x, tile_height * pos_y)
+        self.x = tile_width * pos_x
+        self.y = tile_height * pos_y
+        self.level = level
+
+
+    def update(self):
+        pass
+
+    def is_touch(self):
+        # функция проверяет, прикоснулся ли игрок к морковке
+        if pygame.sprite.spritecollideany(self, player_group):
+            return True
+        return False
+
+    def delete_carrot(self):
+        # функция удаляет морковку
+        self.rect.move(0, 0)
+        self.kill()
+
+
 class EnemyPig(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, pos_x, pos_y, level):
         # класс иницилизирует и распологает врага свинью в определенных координатах
@@ -662,6 +701,8 @@ def generate_level(level):
             elif level[y][x] in 'qwertyu':
                 Decor(f'decor{level[y][x]}', x, y, level)
                 level[y] = level[y].replace(level[y][x], ' ', 1)
+            elif level[y][x] == 'h':
+                Carrot(x, y, level)
             elif level[y][x] == 'f':
                 Finish(x, y)
                 level[y] = level[y].replace('f', ' ', 1)
@@ -799,13 +840,15 @@ sound_button = Button(80, 0, sound_img_on, sound_img_off, 0.6)
 
 def main_menu():
     global music, sound
-    pygame.display.set_caption('YouBunny')
+    pygame.display.set_caption('Bunny-game')
+    pygame.display.set_icon(bunny_animations['stand'])
+    font = pygame.font.SysFont('freesansbold.ttf', 100)
     background_music1 = pygame.mixer.music.load('data/phone_music1.mp3')
     pygame.mixer.music.play()
     # Создание кнопок
     start_button = Button(80, 150, start_img_off, start_img_on, 1)
     exit_button = Button(80, 300, exit_img_off, exit_img_on, 1)
-    # рандомный выбор надписи
+    # рандомной выбор надписи
     bunny_game = random.choice([bunny_game1, bunny_game2, bunny_game3])
     x1, x2 = 0, -1000
 
@@ -832,6 +875,9 @@ def main_menu():
 
         # отрисовка окна и надписи
         screen.blit(bunny_game, (310, 90))
+        screen.blit(carrot, (500, 30))
+        text = font.render(open('data/carrot.txt').readline(), True, (0, 0, 0))
+        screen.blit(text, (560, 30))
         # если пользователь нажал на кнопку 'play', то заканчивается цикл, и окно переходит в раздел уровней
         if start_button.draw() is True:
             running = False
