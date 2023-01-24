@@ -52,7 +52,7 @@ def load_level(filename):
     return list(map(lambda x: x.ljust(max_width, ' '), level_map))
 
 
-# хранение изображения блоков, декора, шипов и анимаций кролика в словарях
+# хранение изображения блоков, декора, шипов и анимаций кролика и его скинов в словарях
 block_images = {
     'block0': load_image('block0.png'),
     'block1': load_image('block1.png'),
@@ -82,23 +82,26 @@ decor_images = {
     'decory': load_image('tree1.png'),
     'decoru': load_image('tree2.png')
 }
-bunny_animations = {
+bunny_animations = [{
     'stand': load_image('bunnyStand.png'),
     'run': load_image('bunnyRun.png'),
     'jump': load_image('bunnyJump.png'),
     'fall': load_image('bunnyFall.png'),
     'slide': load_image('bunnySlide.png'),
     'lose': load_image('bunnyLose.png'),
-}
-bunny_animations_2 = {
+}, {
     'stand': load_image('bunnyStand2.png'),
     'run': load_image('bunnyRun2.png'),
     'jump': load_image('bunnyJump2.png'),
     'fall': load_image('bunnyFall2.png'),
     'slide': load_image('bunnySlide2.png'),
     'lose': load_image('bunnyLose2.png'),
-}
+}]
 
+# переменная для скина
+skin = 0
+
+# загрузка изображений
 carrot = load_image('carrot_game.png')
 carrot_1 = load_image('carrot_1.png')
 backgrounds = load_image('background.png')
@@ -423,16 +426,16 @@ class Player(pygame.sprite.Sprite):
                 not pygame.sprite.spritecollideany(self, hitbox_group) and self.lose is False):
             if self.counter % 3 == 0:
                 if self.jump is True:
-                    self.image = bunny_animations['jump']
+                    self.image = bunny_animations[skin]['jump']
                     self.i = 0
                 elif self.fall is True:
-                    self.image = bunny_animations['fall']
+                    self.image = bunny_animations[skin]['fall']
                     self.i = 0
                 elif self.inwall is True:
-                    self.image = bunny_animations['slide']
+                    self.image = bunny_animations[skin]['slide']
                     self.i = 0
                 elif self.stand is True:
-                    self.image = bunny_animations['stand']
+                    self.image = bunny_animations[skin]['stand']
                     self.i = 0
                 else:
                     self.image = self.frames[self.i % 4]
@@ -441,7 +444,7 @@ class Player(pygame.sprite.Sprite):
                     self.image = pygame.transform.flip(self.image, True, False)
             self.counter += 1
         else:
-            self.image = bunny_animations['lose']
+            self.image = bunny_animations[skin]['lose']
 
     def is_touch_pig(self):
         if self.level[int((self.y + self.mxsy + 30)) // tile_height][self.x // tile_width] == ' ':
@@ -481,6 +484,8 @@ class Player(pygame.sprite.Sprite):
         self.stand = True
 
 
+# класс Carrot по задумке зайчик собирает морковки в процессе игры и может воскреснуть за использование их
+# класс отправлен в доработку, в будущем планируется реализация
 class Carrot(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, level):
         # класс иницилизирует и распологает морковку в определенных координатах
@@ -711,7 +716,7 @@ def generate_level(level):
                 level[y] = level[y].replace('l', ' ', 1)
             elif level[y][x] == '@':
                 level[y] = level[y].replace('@', ' ', 1)
-                new_player = Player(bunny_animations['run'], 4, 1, x, y, level)
+                new_player = Player(bunny_animations[skin]['run'], 4, 1, x, y, level)
             elif level[y][x] == '!':
                 level[y] = level[y].replace('!', ' ', 1)
                 enemy = EnemyPig(load_image('pigWalk.png'), 2, 1, x, y, level)
@@ -753,6 +758,7 @@ exit2_img_on = load_image('exit2Btnon.png')
 sound_img_on = load_image('sound_on.png')
 music_img_on = load_image('music_on.png')
 back_btn = load_image('backBtn.png')
+info_game = load_image('info.png')
 
 level1_img = load_image('1_level.png')
 level1_s_img = load_image('1_level_s.png')
@@ -833,22 +839,76 @@ class Button:
         return action
 
 
+# функция для того чтобы сменить скин
+def skin_bunny():
+    global skin
+    skin = (skin + 1) % 2
+
+
+# функция из которой можно получить информацию
+def get_info():
+    intro_text = ["ЗАСТАВКА", "",
+                  "Правила игры",
+                  "Если в правилах несколько строк,",
+                  "приходится выводить их построчно"]
+
+    font = pygame.font.Font(None, 30)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+
+# функция для вывода информации информации
+def info():
+    x1, x2 = 0, -1000
+
+    clock = pygame.time.Clock()
+    running = True
+    while running:
+        # окно будет отрисововаться до тех пор, пока пользователь не нажал на одну из кнопок
+        screen.fill('lightblue')
+        # отрисовка движения облаков
+        screen.blit(bg, (x1, 0))
+        screen.blit(bgs, (x2, 0))
+        x1 += 1
+        x2 += 1
+        if x1 == 1000:
+            x1 = 0
+        if x2 == 0:
+            x2 = -1000
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                main_menu()
+        get_info()
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 # создание кнопок
 music_button = Button(10, 5, music_img_on, music_img_off, 0.6)
 sound_button = Button(80, 0, sound_img_on, sound_img_off, 0.6)
 
 
 def main_menu():
-    global music, sound
+    global music, sound, skin
     pygame.display.set_caption('Bunny-game')
-    pygame.display.set_icon(bunny_animations['stand'])
+    pygame.display.set_icon(bunny_animations[skin]['stand'])
     font = pygame.font.SysFont('freesansbold.ttf', 100)
     background_music1 = pygame.mixer.music.load('data/phone_music1.mp3')
     pygame.mixer.music.play()
     # Создание кнопок
     start_button = Button(80, 150, start_img_off, start_img_on, 1)
     exit_button = Button(80, 300, exit_img_off, exit_img_on, 1)
-    # рандомной выбор надписи
+    skin_button = Button(630, 10, bunny_animations[skin]['stand'], bunny_animations[(skin + 1) % 2]['stand'], 1)
+    info_button = Button(150, 5, info_game, info_game, 0.6)
+
+    # выбор рандомной надписи
     bunny_game = random.choice([bunny_game1, bunny_game2, bunny_game3])
     x1, x2 = 0, -1000
 
@@ -874,20 +934,29 @@ def main_menu():
             pygame.mixer.music.pause()
 
         # отрисовка окна и надписи
+        pygame.display.set_icon(bunny_animations[skin]['stand'])
         screen.blit(bunny_game, (310, 90))
-        screen.blit(carrot, (500, 30))
-        text = font.render(open('data/carrot.txt').readline(), True, (0, 0, 0))
-        screen.blit(text, (560, 30))
+        # screen.blit(carrot, (500, 10))
+        # text = font.render(open('data/carrot.txt').readline(), True, (0, 0, 0))
+        # screen.blit(text, (560, 10))
+        # эта часть в доработке
+
         # если пользователь нажал на кнопку 'play', то заканчивается цикл, и окно переходит в раздел уровней
         if start_button.draw() is True:
             running = False
         # если пользователь нажал на кнопку 'exit', то происходит завершение работы
         if exit_button.draw() is True:
             terminate()
+        # включение и выключение звука
         if music_button.draw2() is True:
             music = not music
         if sound_button.draw2() is True:
             sound = not sound
+        # если нажимаешь на кнопку менятся скин
+        if skin_button.draw2() is True:
+            skin_bunny()
+        if info_button.draw2() is True:
+            info()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
