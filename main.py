@@ -891,22 +891,22 @@ def info():
 
 
 # создание кнопок
-music_button = Button(10, 5, music_img_on, music_img_off, 0.6)
-sound_button = Button(80, 0, sound_img_on, sound_img_off, 0.6)
+music_button = Button(550, 5, music_img_on, music_img_off, 0.6)
+sound_button = Button(620, 0, sound_img_on, sound_img_off, 0.6)
 
 
 def main_menu():
     global music, sound, skin
     pygame.display.set_caption('Bunny-game')
     pygame.display.set_icon(bunny_animations[skin]['stand'])
-    font = pygame.font.SysFont('freesansbold.ttf', 100)
+    # font = pygame.font.SysFont('freesansbold.ttf', 100)
     background_music1 = pygame.mixer.music.load('data/phone_music1.mp3')
     pygame.mixer.music.play()
     # Создание кнопок
     start_button = Button(80, 150, start_img_off, start_img_on, 1)
     exit_button = Button(80, 300, exit_img_off, exit_img_on, 1)
-    skin_button = Button(630, 10, bunny_animations[skin]['stand'], bunny_animations[(skin + 1) % 2]['stand'], 1)
-    info_button = Button(150, 5, info_game, info_game, 0.6)
+    skin_button = Button(10, 420, bunny_animations[skin]['stand'], bunny_animations[(skin + 1) % 2]['stand'], 1.4)
+    info_button = Button(10, 5, info_game, info_game, 0.6)
 
     # выбор рандомной надписи
     bunny_game = random.choice([bunny_game1, bunny_game2, bunny_game3])
