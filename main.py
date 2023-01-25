@@ -850,7 +850,8 @@ def get_info():
     intro_text = ["ЗАСТАВКА", "",
                   "Правила игры",
                   "Если в правилах несколько строк,",
-                  "приходится выводить их построчно"]
+                  "приходится выводить их построчно"
+                  '', '', 'Designed by Arslan and Valery ']
 
     font = pygame.font.Font(None, 30)
     text_coord = 50
@@ -898,15 +899,15 @@ sound_button = Button(620, 0, sound_img_on, sound_img_off, 0.6)
 def main_menu():
     global music, sound, skin
     pygame.display.set_caption('Bunny-game')
-    pygame.display.set_icon(bunny_animations[skin]['stand'])
+    pygame.display.set_icon(bunny_animations[0]['stand'])
     # font = pygame.font.SysFont('freesansbold.ttf', 100)
     background_music1 = pygame.mixer.music.load('data/phone_music1.mp3')
     pygame.mixer.music.play()
     # Создание кнопок
     start_button = Button(80, 150, start_img_off, start_img_on, 1)
     exit_button = Button(80, 300, exit_img_off, exit_img_on, 1)
-    skin_button = Button(10, 420, bunny_animations[skin]['stand'], bunny_animations[(skin + 1) % 2]['stand'], 1.4)
-    info_button = Button(10, 5, info_game, info_game, 0.6)
+    skin_button = Button(10, 10, bunny_animations[skin]['stand'], bunny_animations[(skin + 1) % 2]['stand'], 1.4)
+    info_button = Button(500, 5, info_game, info_game, 0.6)
 
     # выбор рандомной надписи
     bunny_game = random.choice([bunny_game1, bunny_game2, bunny_game3])
@@ -934,7 +935,6 @@ def main_menu():
             pygame.mixer.music.pause()
 
         # отрисовка окна и надписи
-        pygame.display.set_icon(bunny_animations[skin]['stand'])
         screen.blit(bunny_game, (310, 90))
         # screen.blit(carrot, (500, 10))
         # text = font.render(open('data/carrot.txt').readline(), True, (0, 0, 0))
