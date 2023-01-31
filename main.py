@@ -380,7 +380,6 @@ class Player(pygame.sprite.Sprite):
                     self.speedup = 13
                     self.jump = False
                     self.trampolinejump = False
-                    self.acceleration = 1
 
             # если игрок нажал клавишу space, и если он не находится в состоянии прыжка и персонаж
             # находится на земле, или он делает второй прыжок, то он переходит в состояние прыжка
