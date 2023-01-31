@@ -3,6 +3,8 @@ import sys
 import os
 import time
 import random
+
+
 pygame.font.init()
 
 
@@ -35,6 +37,7 @@ enemy_group = pygame.sprite.Group()
 hitbox_group = pygame.sprite.Group()
 trampoline_group = pygame.sprite.Group()
 carrot_group = pygame.sprite.Group()
+boss_group = pygame.sprite.Group()
 
 
 def load_level(filename):
@@ -118,6 +121,7 @@ loss_sound = pygame.mixer.Sound('data/loss_sound.mp3')
 win_sound = pygame.mixer.Sound('data/win_sound.mp3')
 minijump_sound = pygame.mixer.Sound('data/minijump_sound.mp3')
 trampoline_sound = pygame.mixer.Sound('data/trampoline_sound.mp3')
+ground_sound = pygame.mixer.Sound('data/ground-sound.mp3')
 music, sound = True, True
 isclicked, begin_time = False, None
 
@@ -132,7 +136,7 @@ decor_width = decor_height = 50
 size = WIDTH, HEIGHT = width, height = 700, 500
 
 # сколько уровней в данный момент
-maps = 3
+maps = 5
 
 
 class Block(pygame.sprite.Sprite):
@@ -230,7 +234,7 @@ class Thorn(pygame.sprite.Sprite):
         # класс иницилизирует и распологает шипы в определенных координатах
         super().__init__(thorns_group, all_sprites)
         self.image = thorn_images[thorn_type]
-        d = {'z': 15, 'x': -15, 'c': 0, 'v': 0}
+        d = {'z': 0, 'x': 0, 'c': 0, 'v': 0}
         if level[pos_y][pos_x - 1] != thorn_type[-1]:
             if thorn_type[-1] != 'v':
                 self.rect = self.image.get_rect().move(
@@ -341,7 +345,7 @@ class Player(pygame.sprite.Sprite):
                 self.acceleration = 1
 
             # если игрок на земле, то количество прыжков обнуляется
-            if th3 in '123' or th4 in '123':
+            if th3 in '1230' or th4 in '1230':
                 self.jumpCount = 0
 
             # если игрок находится в состоянии мини прыжка, он ни с чем не столкнулся и он не преодолел 1 блок,
@@ -382,10 +386,18 @@ class Player(pygame.sprite.Sprite):
             # находится на земле, или он делает второй прыжок, то он переходит в состояние прыжка
             if args and args[0].type == pygame.KEYDOWN:
                 if args[0].key == pygame.K_SPACE:
-                    if (self.jump is False and (th3 in '123' or th4 in '123')) or self.jumpCount < 1:
+                    if (self.jump is False and (th3 in '1230' or th4 in '1230')) or self.jumpCount < 1:
                         if self.inwall is True:
                             self.duration = not self.duration
                             self.inwall = False
+                        else:
+                            if self.duration is True:
+                                self.rect = self.rect.move(-self.speedx, 0)
+                                self.x -= self.speedx
+                            else:
+                                self.rect = self.rect.move(self.speedx, 0)
+                                self.x += self.speedx
+
                         self.jump = True
                         self.trampolinejump = False
                         self.jumpCount += 1
@@ -463,25 +475,28 @@ class Player(pygame.sprite.Sprite):
 
     def is_lose(self):
         # функция проверяет, проиграл ли персонаж
-        if self.lose is True:
-            return True
-        return False
+        return self.lose
 
     def is_kill(self):
         # функция проверяет, убил ли персонаж врага
-        if self.kill is True:
-            return True
-        return False
+        return self.kill
 
     def is_win(self):
         # функция проверяет, победил ли персонаж
-        if self.win is True:
-            return True
-        return False
+        return self.win
 
     def set_pause(self):
         # функция останавливает игрока во время паузы
         self.stand = True
+
+    def is_stand(self):
+        # функция проверяет, стоит ли персонаж
+        if self.stand:
+            self.image = bunny_animations[skin]['stand']
+            if not self.duration:
+                self.image = pygame.transform.flip(self.image, True, False)
+            return True
+        return False
 
 
 # класс Carrot по задумке зайчик собирает морковки в процессе игры и может воскреснуть за использование их
@@ -496,7 +511,6 @@ class Carrot(pygame.sprite.Sprite):
         self.x = tile_width * pos_x
         self.y = tile_height * pos_y
         self.level = level
-
 
     def update(self):
         pass
@@ -584,8 +598,61 @@ class EnemyPig(pygame.sprite.Sprite):
     def delete_enemy(self):
         # функция удаляет врага
         self.image = self.frames[1]
-        self.rect.move(0, 10)
         self.kill()
+
+
+class PigKing(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, pos_x, pos_y):
+        # класс иницилизирует и распологает босса в определенных координатах
+        super().__init__(boss_group, all_sprites)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.i = 0
+        self.image = self.frames[self.i]
+        self.counter = 0
+        self.rect = self.image.get_rect().move(
+            tile_width * pos_x, tile_height * pos_y)
+        self.undergr, self.start, self.stop = True, True, False
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        # босс идет до тех пор, пока не коснется игрока или трамплина
+        self.animation()
+        if not pygame.sprite.spritecollideany(self, player_group) and\
+                not pygame.sprite.spritecollideany(self, trampoline_group) and not self.stop:
+            if self.counter == 1:
+                ground_sound.play()
+            if self.counter == 50:
+                self.start = False
+                ground_sound.stop()
+            if not self.start:
+                self.rect = self.rect.move(9, 0)
+            else:
+                self.rect = self.rect.move(14, 0)
+        else:
+            self.stop = True
+
+    def animation(self):
+        # анимация ходьбы босса
+        if self.start is False:
+            if self.counter % 6 == 0:
+                self.image = self.frames[self.i % 2]
+                self.i += 1
+        self.counter += 1
+
+    def get_duration(self):
+        return True
+
+    def is_touch(self):
+        return False
 
 
 class EnemyBug(pygame.sprite.Sprite):
@@ -646,7 +713,7 @@ class EnemyBug(pygame.sprite.Sprite):
 
 
 class HitBox(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, w, h, d1, d2):
+    def __init__(self, pos_x, pos_y, w, h, d1, d2, b):
         # класс иницилизирует и распологает хитбокс врага в определенных координатах
         super().__init__(hitbox_group, all_sprites)
         self.image = pygame.Surface((w, h),
@@ -658,10 +725,14 @@ class HitBox(pygame.sprite.Sprite):
         self.x = tile_width * pos_x + d1
         self.y = tile_height * pos_y + d2
         self.duration = True
-        self.speed = 4
+        if b:
+            self.rect = self.rect.move(0, -250)
+            self.speed = 9
+        else:
+            self.speed = 4
 
     def update(self, *duration):
-        if duration:
+        if duration and not pygame.sprite.spritecollideany(self, trampoline_group):
             if duration[0] is True:
                 self.rect = self.rect.move(self.speed, 0)
             else:
@@ -684,10 +755,13 @@ class Camera:
         self.dx = 0
         self.dy = 0
 
-    def apply(self, obj):
+    def apply(self, obj, name_file):
         # сдвинуть объект obj на смещение камеры
         obj.rect.x += self.dx
-        obj.rect.y += self.dy
+        if name_file == 'map5.txt':
+            obj.rect.y += self.dy + 100
+        else:
+            obj.rect.y += self.dy
 
     def update(self, target):
         # позиционировать камеру на объекте target
@@ -703,7 +777,7 @@ def generate_level(level):
                 Block(f'block{level[y][x]}', x, y)
             elif level[y][x] in 'zxcv':
                 Thorn(f'thorn{level[y][x]}', x, y, level)
-            elif level[y][x] in 'qwertyu':
+            elif level[y][x] in 'qwertyui':
                 Decor(f'decor{level[y][x]}', x, y, level)
                 level[y] = level[y].replace(level[y][x], ' ', 1)
             elif level[y][x] == 'h':
@@ -719,8 +793,14 @@ def generate_level(level):
                 new_player = Player(bunny_animations[skin]['run'], 4, 1, x, y, level)
             elif level[y][x] == '!':
                 level[y] = level[y].replace('!', ' ', 1)
-                enemy = EnemyPig(load_image('pigWalk.png'), 2, 1, x, y, level)
-                hitbox = HitBox(x, y, 30, 55, 5, 5)
+                enemy = EnemyPig(load_image('pigwalk.png'), 2, 1, x, y, level)
+                hitbox = HitBox(x, y, 25, 55, 15, 5, False)
+                lst.append(enemy)
+                lst2.append(hitbox)
+            elif level[y][x] == '&':
+                level[y] = level[y].replace('&', ' ', 1)
+                enemy = PigKing(load_image('pigking.png'), 2, 1, x, y)
+                hitbox = HitBox(x, y, 120, 800, 360, 0, True)
                 lst.append(enemy)
                 lst2.append(hitbox)
             elif level[y][x] in '><':
@@ -729,7 +809,7 @@ def generate_level(level):
                 else:
                     enemy = EnemyBug(load_image('bug.png'), 5, 1, x, y, False)
                 level[y] = level[y].replace(level[y][x], ' ', 1)
-                hitbox = HitBox(x, y, 45, 30, 10, 15)
+                hitbox = HitBox(x, y, 45, 30, 10, 15, False)
                 lst3.append(enemy)
                 lst4.append(hitbox)
     # вернем игрока, список врагов, и список хитбоксов врагов
@@ -867,8 +947,8 @@ def get_info():
 
 # функция для вывода информации информации
 def info():
+    backbtn = Button(10, 430, back_btn, back_btn, 0.7)
     x1, x2 = 0, -1000
-
     clock = pygame.time.Clock()
     running = True
     while running:
@@ -885,7 +965,10 @@ def info():
             x2 = -1000
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                main_menu()
+                terminate()
+        if backbtn.draw() is True:
+            main_menu()
+
         get_info()
         pygame.display.flip()
         clock.tick(FPS)
@@ -997,7 +1080,7 @@ def levels(x1, x2):
         if level4.draw() is True:
             file_name = 'map4.txt'
         if level5.draw() is True:
-            pass
+            file_name = 'map5.txt'
         if backbtn.draw() is True:
             main_menu()
         # если пользователь нажал на кнопку 'exit', то происходит завершение работы
@@ -1015,6 +1098,8 @@ def levels(x1, x2):
 def game(name_file):
     global music, sound
     background_music2 = pygame.mixer.music.load('data/phone_music2.mp3')
+    if '5' in name_file:
+        background_music3 = pygame.mixer.music.load('data/musicexe.mp3')
     pygame.mixer.music.play()
     if music is False:
         pygame.mixer.music.pause()
@@ -1055,18 +1140,21 @@ def game(name_file):
                     if p == 3:
                         ending = 'exit'
         # отображаем спрайты на экране
+        if not player.is_stand():
+            all_sprites.update()
+
         decor_group.draw(screen), finish_group.draw(screen), trampoline_group.draw(screen)
         all_sprites.draw(screen), enemy_group.draw(screen)
         hitbox_group.draw(screen), player_group.draw(screen)
-
-        for i, hitbox in enumerate(lst_hitboxes_pigs):
-            hitbox.update(lst_enemies_pigs[i].get_duration())
+        if not player.is_stand():
+            for i, hitbox in enumerate(lst_hitboxes_pigs):
+                hitbox.update(lst_enemies_pigs[i].get_duration())
 
         # если пользователь проиграл или победил, то камера прекращает следить за персонажем
         if player.is_lose() is False and player.is_win() is False:
             camera.update(player)
             for sprite in all_sprites:
-                camera.apply(sprite)
+                camera.apply(sprite, name_file)
                 bg.update(player)
 
         # если пользователь проиграл, создается таймер, по истечению которого цикл прекращается и вызывается
@@ -1119,14 +1207,13 @@ def game(name_file):
         # если ending больше не пустая строка то цикл прекращается
         if ending:
             running = False
-        all_sprites.update()
         pygame.display.flip()
         clock.tick(FPS)
 
     # после окончания цикла все спрайты очищаются
     all_sprites.empty(), tiles_group.empty(), thorns_group.empty(), decor_group.empty()
     decor_group.empty(), finish_group.empty(), player_group.empty(), background_group.empty()
-    enemy_group.empty(), hitbox_group.empty(), trampoline_group.empty()
+    enemy_group.empty(), hitbox_group.empty(), trampoline_group.empty(), boss_group.empty()
     if ending == 'restart':
         game(name_file)
     elif ending == 'exit':
